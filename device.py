@@ -11,6 +11,7 @@ import time
 import socket, struct
 import queue
 
+
 UDP_IP = "127.0.0.1"
 UDP_PORT_IN = 40001
 UDP_PORT_OUT = 40002
@@ -70,7 +71,7 @@ hhandle = pygame.image.load('handle.png')
 haptic  = pygame.Rect(*screenHaptics.get_rect().center, 0, 0).inflate(48, 48)
 cursor  = pygame.Rect(0, 0, 5, 5)
 
-buffer = 30
+buffer = 1
 
 xh = np.array(haptic.center)
 q = queue.Queue(buffer)
@@ -192,7 +193,7 @@ while run:
         xm = np.clip(np.array(cursor.center), 0, 599)
 
         recv_data, address = recv_sock.recvfrom(12)  # receive data with buffer size of 12 bytes
-        force = struct.unpack("2f", recv_data)  # convert the received data from bytes to array of 3 floats (assuming force in 3 axes)
+        force = struct.unpack("2f",recv_data)  # convert the received data from bytes to array of 3 floats (assuming force in 3 axes)
 
     ######### Send forces to the device #########
     if port:
@@ -251,13 +252,13 @@ while run:
 
     pygame.display.flip()
 
-    pos = np.array([4 / 3, 3 / 2] * xh)
+    pos = np.array([4  * xh[0]/ 3, 3 * xh[1] / 2])
 
     q.put(pos)
     if q.full() == True:
         position = q.get()
     else:
-        position = np.array([0, 0])
+        position = np.array([200, 200, buffer])
 
     send_data = bytearray(struct.pack("=%sf" % position.size, *position))  # convert array of 2 floats to bytes
     send_sock.sendto(send_data, (UDP_IP, UDP_PORT_OUT))  # send to IP address UDP_IP and port UDP_PORT_OUT
