@@ -84,9 +84,9 @@ textRect.topleft = (10, 10) # printing text position with respect to the top-lef
 clock = pygame.time.Clock() # initialise clock
 FPS = int(1/dts) # refresh rate
 
-start = pygame.Rect(100, 133, 25, 24)
-end = pygame.Rect(675, 133, 25, 24)
-weld = pygame.Rect(100, 133, 600, 24)
+start = pygame.Rect(200, 288, 25, 25)
+end = pygame.Rect(575, 288, 25, 25)
+weld = pygame.Rect(213, 100, 375, 400)
 
 
 timer = 0
@@ -110,8 +110,10 @@ y2 = 0
 person_num = 0
 num = 1
 tot_error = 0
+tot_serror = 0
 
 error_list = []
+serror_list = []
 num_list = []
 person_list = []
 t2_list =[]
@@ -161,6 +163,10 @@ while run:
                     K[1, 1] = K[1, 1] - stiffness_increment
                 else:
                     K[1, 1] = 0
+            if event.key == ord('p'):
+                person_num +=1
+                num = 1
+                print(person_num, num)
 
 # main control code
     recv_data, address = recv_sock.recvfrom(12)  # receive data with buffer size of 12 bytes
@@ -177,30 +183,47 @@ while run:
     F = K @ (pr - p) + D @ (dp_)*3
 
     #Wave functions
-    F[0] += 2*np.sin(np.pi*t)
-    F[1] += 2*np.cos(0.9*np.pi * t)
+    F[0] += 5*np.sin(np.pi*t)
+    F[1] += 10*np.cos(0.9*np.pi * t)
 
     if test==False and start.collidepoint(window_scale*x2+xc,-window_scale*y2+yc)==True:
         print("start test")
-        i= 0
+        it= 0
         test = True
 
     if test==True and end.collidepoint(window_scale*x2+xc,-window_scale*y2+yc)==True:
-        print("end test")
-        error_list.append([tot_error/i])
+        print("end test", num)
+        error_list.append([tot_error/it])
+        serror_list.append([tot_serror / it])
         num_list.append([num])
         person_list.append([person_num])
         t2_list.append([t2])
 
         num += 1
         tot_error = 0
+        tot_serror
         t2 = 0
         test = False
 
-    err = abs((-window_scale*y2+yc  - 145))
+
 
     if test:
-        tot_error += err
+        if window_scale*x2+xc > 200 and window_scale*x2+xc < 599:
+            angle = (((window_scale*x2+xc)/400)-0.5)*np.pi
+
+            ys = -200 * np.sin(angle) + 299
+            err = abs((-window_scale * y2 + yc - ys))
+
+            tot_serror += err**2
+            tot_error += err
+            it += 1
+        else:
+
+            err = abs((-window_scale * y2 + yc - 299))
+
+            tot_serror += err ** 2
+            tot_error += err
+            it += 1
         t2 += dt
 
     #prepare Force for encryption
@@ -231,10 +254,11 @@ while run:
     # real-time plotting
     window.fill(cLightblue) # clear window
 
-
-    pygame.draw.rect(window, cOrange, weld)
+    pygame.draw.arc(window,cOrange,weld,0, np.pi, 2)
+    # pygame.draw.rect(window, cOrange, weld)
     pygame.draw.rect(window, cWhite, start)
     pygame.draw.rect(window, cRed, end)
+
 
 
 
@@ -267,20 +291,23 @@ while run:
 
 pygame.quit()  # stop pygame
 
-print(person_list, num_list, t2_list, error_list)
-# df = pd.DataFrame ([person_list])
-# # df1 = pd.DataFrame ([num_list])
-# df2 = pd.DataFrame ([t2_list])
-# df3 = pd.DataFrame ([error_list])
-#
-# filepath = 'my_excel_file.xlsx'
-# with pd.ExcelWriter(filepath,
-#     mode="a",
-#     engine="openpyxl",
-#     if_sheet_exists="overlay",
-# ) as writer:
-#     df.to_excel(writer, sheet_name="Sheet1", index=False)
-#     # df1.to_excel(writer, sheet_name="Sheet1", startrow=2, index=False)
-#     df2.to_excel(writer, sheet_name="Sheet1", startrow=5, index=False)
-#     df3.to_excel(writer, sheet_name="Sheet1", startrow=7, index=False)
+print(person_list, num_list, t2_list, error_list, serror_list)
+df = pd.DataFrame (person_list)
+df1 = pd.DataFrame (num_list)
+df2 = pd.DataFrame (t2_list)
+df3 = pd.DataFrame (error_list)
+df4 = pd.DataFrame (serror_list)
+
+filepath = 'my_excel_file.xlsx'
+sheet = 'Delay_1'
+with pd.ExcelWriter(filepath,
+    mode="a",
+    engine="openpyxl",
+    if_sheet_exists="overlay",
+) as writer:
+    df.to_excel(writer, sheet_name=sheet, index=False )
+    df1.to_excel(writer, sheet_name=sheet, startcol=2, index=False )
+    df2.to_excel(writer, sheet_name=sheet, startcol=4, index=False )
+    df3.to_excel(writer, sheet_name=sheet, startcol=6, index=False )
+    df4.to_excel(writer, sheet_name=sheet, startcol=8, index=False )
 

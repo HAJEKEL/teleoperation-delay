@@ -71,7 +71,7 @@ hhandle = pygame.image.load('handle.png')
 haptic  = pygame.Rect(*screenHaptics.get_rect().center, 0, 0).inflate(48, 48)
 cursor  = pygame.Rect(0, 0, 5, 5)
 
-buffer = 1
+buffer = 1 #length of buffer Delay. For 1 is no buffer
 
 xh = np.array(haptic.center)
 q = queue.Queue(buffer)
@@ -144,6 +144,7 @@ ongoingCollision = False
 fieldToggle = True
 robotToggle = True
 debugToggle = False
+delay = True
 
 #variables
 fe = np.zeros(2)
@@ -165,6 +166,8 @@ while run:
                 debugToggle = not debugToggle
             if event.key == ord('r'):
                 robotToggle = not robotToggle
+            if event.key == ord('m'):
+                delay = not delay
 
 
     ######### Read position (Haply and/or Mouse)  #########
@@ -182,6 +185,11 @@ while run:
         xh[0] = np.round(-xh[0] + 300)
         xh[1] = np.round(xh[1] - 60)
         xm = xh  ##Mouse position is not used
+        recv_data, address = recv_sock.recvfrom(12)  # receive data with buffer size of 12 bytes
+        force = struct.unpack("2f",
+                              recv_data)  # convert the received data from bytes to array of 3 floats (assuming force in 3 axes)
+
+
 
     else:
         ##Compute distances and forces between blocks
@@ -253,15 +261,18 @@ while run:
     pygame.display.flip()
 
     pos = np.array([4  * xh[0]/ 3, 3 * xh[1] / 2])
+    if delay:
+        q.put(pos)
+        if q.full() == True:
+            position = q.get()
+        else:
+            position = np.array([200, 200])
 
-    q.put(pos)
-    if q.full() == True:
-        position = q.get()
+        send_data = bytearray(struct.pack("=%sf" % position.size, *position))  # convert array of 2 floats to bytes
+        send_sock.sendto(send_data, (UDP_IP, UDP_PORT_OUT))  # send to IP address UDP_IP and port UDP_PORT_OUT
     else:
-        position = np.array([200, 200, buffer])
-
-    send_data = bytearray(struct.pack("=%sf" % position.size, *position))  # convert array of 2 floats to bytes
-    send_sock.sendto(send_data, (UDP_IP, UDP_PORT_OUT))  # send to IP address UDP_IP and port UDP_PORT_OUT
+        send_data = bytearray(struct.pack("=%sf" % pos.size, *pos))  # convert array of 2 floats to bytes
+        send_sock.sendto(send_data, (UDP_IP, UDP_PORT_OUT))  # send to IP address UDP_IP and port UDP_PORT_OUT
 
     ##Slow down the loop to match FPS
     clock.tick(FPS)
