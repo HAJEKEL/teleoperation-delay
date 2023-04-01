@@ -1,7 +1,5 @@
 import pygame
 import numpy as np
-import math
-import matplotlib.pyplot as plt
 from pantograph import Pantograph
 from pyhapi import Board, Device, Mechanisms
 from pshape import PShape
@@ -11,7 +9,8 @@ import time
 import socket, struct
 import queue
 
-
+######### Init UDP connection #########
+## Set IP and Port
 UDP_IP = "127.0.0.1"
 UDP_PORT_IN = 40001
 UDP_PORT_OUT = 40002
@@ -21,6 +20,7 @@ recv_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # create a receive
 recv_sock.bind((UDP_IP, UDP_PORT_IN))  # bind the scoket to port 40002
 print('fill socket')
 
+##send a dummy message
 position = np.array([0,0])
 send_data = bytearray(struct.pack("=%sf" % position.size, *position))  # convert array of 2 floats to bytes
 send_sock.sendto(send_data, (UDP_IP, UDP_PORT_OUT))  # send to IP address UDP_IP and port UDP_PORT_OUT
@@ -71,18 +71,14 @@ hhandle = pygame.image.load('handle.png')
 haptic  = pygame.Rect(*screenHaptics.get_rect().center, 0, 0).inflate(48, 48)
 cursor  = pygame.Rect(0, 0, 5, 5)
 
-buffer = 1 #length of buffer Delay. For 1 is no buffer
-
+## create a queue of length {buffer}
+buffer = 30 #length of buffer Delay. For 1 is no buffer
 xh = np.array(haptic.center)
 q = queue.Queue(buffer)
 
 ##Set the old value to 0 to avoid jumps at init
 xhold = 0
 xmold = 0
-
-
-##################### Init Virtual env. #####################
-
 
 ##################### Detect and Connect Physical device #####################
 # USB serial microcontroller program id data:
@@ -260,17 +256,20 @@ while run:
 
     pygame.display.flip()
 
-    pos = np.array([4  * xh[0]/ 3, 3 * xh[1] / 2])
-    if delay:
-        q.put(pos)
-        if q.full() == True:
-            position = q.get()
-        else:
-            position = np.array([200, 200])
+    pos = np.array([4  * xh[0]/ 3, 3 * xh[1] / 2]) #put position in an array
 
+
+    if delay:
+        q.put(pos) # Fill the delay queue
+        if q.full() == True:
+            position = q.get()  #get the first position of the full array
+        else:
+            position = np.array([200, 200]) #Get dummy location
+        #send Data by UDP
         send_data = bytearray(struct.pack("=%sf" % position.size, *position))  # convert array of 2 floats to bytes
         send_sock.sendto(send_data, (UDP_IP, UDP_PORT_OUT))  # send to IP address UDP_IP and port UDP_PORT_OUT
     else:
+        # send Data by UDP
         send_data = bytearray(struct.pack("=%sf" % pos.size, *pos))  # convert array of 2 floats to bytes
         send_sock.sendto(send_data, (UDP_IP, UDP_PORT_OUT))  # send to IP address UDP_IP and port UDP_PORT_OUT
 

@@ -2,11 +2,12 @@
 
 import numpy as np
 import math
-import matplotlib.pyplot as plt
 import pygame
 import socket, struct
 import pandas as pd
 
+######### Init UDP connection #########
+## Set IP and Port
 UDP_IP = "127.0.0.1"
 UDP_PORT_IN = 40002
 UDP_PORT_OUT = 40001
@@ -47,6 +48,7 @@ class robot_arm_2dof:
 dt = 0.01 # intergration step timedt = 0.01 # integration step time
 dts = dt*1 # desired simulation step time (NOTE: it may not be achieved)
 
+##define some colors
 cWhite = (255,255,255)
 cDarkblue = (36,90,190)
 cLightblue = (0,176,240)
@@ -84,12 +86,10 @@ textRect.topleft = (10, 10) # printing text position with respect to the top-lef
 clock = pygame.time.Clock() # initialise clock
 FPS = int(1/dts) # refresh rate
 
+##create rectangles for drawing the task
 start = pygame.Rect(200, 288, 25, 25)
 end = pygame.Rect(575, 288, 25, 25)
 weld = pygame.Rect(213, 100, 375, 400)
-
-
-timer = 0
 
 # initial conditions
 t = 0.0 # time
@@ -104,16 +104,21 @@ p_prev = np.zeros(2) # previous endpoint position
 m = 0.5 # endpoint mass
 i = 0 # loop counter
 state = [] # state vector
-x2 = 0
-y2 = 0
+x2 = 0 # initial x position end of arm in pygame coordinates
+y2 = 0 # initial y position end of arm in pygame coordinates
 
+## Setup data variables
 person_num = 0
 num = 1
 tot_error = 0
 tot_serror = 0
+tot_serror2 = 0
+tot_error2 = 0
 
 error_list = []
 serror_list = []
+error2_list = []
+serror2_list = []
 num_list = []
 person_list = []
 t2_list =[]
@@ -163,7 +168,7 @@ while run:
                     K[1, 1] = K[1, 1] - stiffness_increment
                 else:
                     K[1, 1] = 0
-            if event.key == ord('p'):
+            if event.key == ord('p'):   #event key for resetting test info for new test person
                 person_num +=1
                 num = 1
                 print(person_num, num)
@@ -177,6 +182,7 @@ while run:
     # pm = np.array(pygame.mouse.get_pos())
     pr = [((pm[0]) / window_scale) - (800 / (2 * window_scale)), ((-pm[1]) / window_scale) + (600 / (2 * window_scale))]
 
+    # impedance control with enlarged damping to simulate underwater movement
     xi = .7
     D = 2 * xi * np.sqrt(K)
     dp_ = (p_prev - p) / dt
@@ -186,43 +192,50 @@ while run:
     F[0] += 5*np.sin(np.pi*t)
     F[1] += 10*np.cos(0.9*np.pi * t)
 
+    ############TEST DATA COLLECTION##################
+    ##Start of the test
     if test==False and start.collidepoint(window_scale*x2+xc,-window_scale*y2+yc)==True:
         print("start test")
         it= 0
         test = True
 
+    ##End of the test
     if test==True and end.collidepoint(window_scale*x2+xc,-window_scale*y2+yc)==True:
         print("end test", num)
-        error_list.append([tot_error/it])
-        serror_list.append([tot_serror / it])
-        num_list.append([num])
-        person_list.append([person_num])
-        t2_list.append([t2])
+        error_list.append([tot_error/it]) #List all variable for the total error in pixels
+        serror_list.append([tot_serror / it]) #List all variable for the total squared error in pixels
+        error2_list.append([tot_error2 / it]) #List all variable for the total error in meters
+        serror2_list.append([tot_serror2 / it]) #List all variable for the total squared error in meters
+        num_list.append([num]) #List Test number
+        person_list.append([person_num]) #List test person
+        t2_list.append([t2]) #list completion time
 
         num += 1
-        tot_error = 0
-        tot_serror
-        t2 = 0
+        tot_error = 0 #Reset Variable for the total error in pixels
+        tot_serror = 0 #Reset Variable for the total squared error in pixels
+        tot_serror2 =0 #Reset Variable for the total error in meters
+        tot_error2 =0 #Reset Variable for the total squared error in meters
+        t2 = 0 #Reset completion time
         test = False
-
-
 
     if test:
         if window_scale*x2+xc > 200 and window_scale*x2+xc < 599:
             angle = (((window_scale*x2+xc)/400)-0.5)*np.pi
-
             ys = -200 * np.sin(angle) + 299
-            err = abs((-window_scale * y2 + yc - ys))
-
+            err = abs((-window_scale * y2 + yc - ys)) #Error allong the arc
+            #Collect the errors
             tot_serror += err**2
             tot_error += err
+            tot_serror2 += (err/window_scale) ** 2
+            tot_error2 += err/window_scale
             it += 1
         else:
-
-            err = abs((-window_scale * y2 + yc - 299))
-
+            # Collect the errors
+            err = abs((-window_scale * y2 + yc - 299)) #error away from arc
             tot_serror += err ** 2
             tot_error += err
+            tot_serror2 += (err / window_scale) ** 2
+            tot_error2 += err / window_scale
             it += 1
         t2 += dt
 
@@ -241,7 +254,7 @@ while run:
     p += dp*dt
     t += dt
 
-# increase loop counter
+    # increase loop counter
     i = i + 1
 
     # update individual link position
@@ -254,15 +267,12 @@ while run:
     # real-time plotting
     window.fill(cLightblue) # clear window
 
-    pygame.draw.arc(window,cOrange,weld,0, np.pi, 2)
+    pygame.draw.arc(window,cOrange,weld,0, np.pi, 2) #draw the trajectory line
     # pygame.draw.rect(window, cOrange, weld)
-    pygame.draw.rect(window, cWhite, start)
-    pygame.draw.rect(window, cRed, end)
+    pygame.draw.rect(window, cWhite, start) # Draw the white start square
+    pygame.draw.rect(window, cRed, end) # Draw the red end square
 
-
-
-
-    pygame.draw.circle(window, (0, 255, 0), (pm[0], pm[1]), 5) # draw reference position
+    #pygame.draw.circle(window, (0, 255, 0), (pm[0], pm[1]), 5) # draw reference position
     pygame.draw.lines(window, (0, 0, 255), False, [(window_scale*x0+xc,-window_scale*y0+yc), (window_scale*x1+xc,-window_scale*y1+yc), (window_scale*x2+xc,-window_scale*y2+yc)], 6) # draw links
     pygame.draw.circle(window, (0, 0, 0), (window_scale*x0+xc,-window_scale*y0+yc), 9) # draw shoulder / base
     pygame.draw.circle(window, (0, 0, 0), (window_scale*x1+xc,-window_scale*y1+yc), 9) # draw elbow
@@ -279,6 +289,7 @@ while run:
 
     pygame.display.flip()  # update display
 
+    # send Data by UDP
     send_data = bytearray(struct.pack("=%sf" % force.size, *force))  # convert array of 2 floats to bytes
     send_sock.sendto(send_data, (UDP_IP, UDP_PORT_OUT))  # send to IP address UDP_IP and port UDP_PORT_OUT
 
@@ -291,15 +302,22 @@ while run:
 
 pygame.quit()  # stop pygame
 
-print(person_list, num_list, t2_list, error_list, serror_list)
+#After ending the simulation the Test data is printed and saved in a excel file
+print(person_list, num_list, t2_list, error_list, serror_list, error2_list, serror2_list
+
+# convert test data to panda DataFrames
 df = pd.DataFrame (person_list)
 df1 = pd.DataFrame (num_list)
 df2 = pd.DataFrame (t2_list)
 df3 = pd.DataFrame (error_list)
 df4 = pd.DataFrame (serror_list)
+df5 = pd.DataFrame (error2_list)
+df6 = pd.DataFrame (serror2_list)
 
-filepath = 'my_excel_file.xlsx'
-sheet = 'Delay_1'
+filepath = 'my_excel_file.xlsx' #Set excel filepath to where you want to save your data
+sheet = 'Delay_x' #Set sheet name to where you want to save your data
+
+#write data to excel
 with pd.ExcelWriter(filepath,
     mode="a",
     engine="openpyxl",
@@ -310,4 +328,5 @@ with pd.ExcelWriter(filepath,
     df2.to_excel(writer, sheet_name=sheet, startcol=4, index=False )
     df3.to_excel(writer, sheet_name=sheet, startcol=6, index=False )
     df4.to_excel(writer, sheet_name=sheet, startcol=8, index=False )
-
+    df5.to_excel(writer, sheet_name=sheet, startcol=10, index=False )
+    df6.to_excel(writer, sheet_name=sheet, startcol=12, index=False )
