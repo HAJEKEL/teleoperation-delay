@@ -303,7 +303,7 @@ while run:
 pygame.quit()  # stop pygame
 
 #After ending the simulation the Test data is printed and saved in a excel file
-print(person_list, num_list, t2_list, error_list, serror_list, error2_list, serror2_list
+print(person_list, num_list, t2_list, error_list, serror_list, error2_list, serror2_list)
 
 # convert test data to panda DataFrames
 df = pd.DataFrame (person_list)
@@ -321,8 +321,7 @@ sheet = 'Delay_x' #Set sheet name to where you want to save your data
 with pd.ExcelWriter(filepath,
     mode="a",
     engine="openpyxl",
-    if_sheet_exists="overlay",
-) as writer:
+    if_sheet_exists="overlay") as writer:
     df.to_excel(writer, sheet_name=sheet, index=False )
     df1.to_excel(writer, sheet_name=sheet, startcol=2, index=False )
     df2.to_excel(writer, sheet_name=sheet, startcol=4, index=False )

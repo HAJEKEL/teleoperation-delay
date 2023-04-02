@@ -156,13 +156,13 @@ while run:
         elif event.type == pygame.KEYUP:
             if event.key == ord('m'):  ##Change the visibility of the mouse
                 pygame.mouse.set_visible(not pygame.mouse.get_visible())
-            if event.key == ord('q'):  ##Force to quit
+            elif event.key == ord('q'):  ##Force to quit
                 run = False
-            if event.key == ord('d'):
+            elif event.key == ord('d'):
                 debugToggle = not debugToggle
-            if event.key == ord('r'):
+            elif event.key == ord('r'):
                 robotToggle = not robotToggle
-            if event.key == ord('m'):
+            elif event.key == ord('n'):
                 delay = not delay
 
 
