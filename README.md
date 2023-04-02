@@ -4,9 +4,9 @@ Teleoperation is the process of controlling a robotic system remotely, typically
 
 ## Methods
 
-The Teleoperation-delay program is based on the PA1 and PA2 frameworks. The test program allows the user to control a robotic arm and track a 2D path using either a Haply device or a virtual controller. The user can adjust the amount of simulated delay by changing the length of the Queue, which is controlled by modifying the `buffer` variable in `device.py`.
+The Teleoperation-delay program is based on the PA1 and PA2 frameworks. The test program allows the user to control a robotic arm and track a 2D path using either a Haply device or a virtual controller. The user can adjust the amount of simulated delay by changing the length of the Queue, which is controlled by modifying the `buffer` variable in `device.py`, line 75-77.
 
-At the end of each test, the program prints and collects test data in an Excel file. The user needs to specify the location filepath of the file and the sheet to write to. Multiple tests can be run, and the user needs to change the sheet or the starting row of the writer to avoid overwriting previous data.
+At the end of each test, the program prints and collects test data in an Excel file. The user needs to specify the location filepath of the file and the sheet to write to inside `main.py`, line 317-318. Multiple tests can be run, and the user needs to change the sheet or the starting row of the writer to avoid overwriting previous data.
 
 ## Usage
 
